@@ -40,7 +40,7 @@
 <!-- CONFIGURATION — UPDATE THIS URL              -->
 <!-- ============================================ -->
 <script>
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1RVhQq2I-SfAaw-1n2EUThhbMnQQevBgQRuhq84GtVX5zm8QY9bqqO47EhltnOArLEw/exec";
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzpZk7s6uM_ewAbPorFX_JACioL-khAodYzJqsM2lI_mz2YpKTlEkjhHymfnK031KPpaA/exec";
   const ADVISER_PIN = "8080";
 </script>
 
@@ -226,10 +226,7 @@ function renderStep() {
   if (step === 0) return `
     <div style="display:flex;flex-direction:column;gap:20px">
       <div><label class="label">Full Name</label><input class="input" id="f-name" value="${form.name}" placeholder="e.g. Khong Ching Yi" oninput="form.name=this.value;updateBtn()"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div><label class="label">Email</label><input class="input" id="f-email" type="email" value="${form.email}" placeholder="email@example.com" oninput="form.email=this.value;updateBtn()"></div>
-        <div><label class="label">Phone</label><input class="input" id="f-phone" value="${form.phone}" placeholder="+65 9XXX XXXX" oninput="form.phone=this.value;updateBtn()"></div>
-      </div>
+      <div><label class="label">Phone</label><input class="input" id="f-phone" value="${form.phone}" placeholder="+65 9XXX XXXX" oninput="form.phone=this.value;updateBtn()"></div>
       <div><label class="label">Age</label><input class="input" id="f-age" type="number" value="${form.age}" placeholder="26" min="18" max="80" oninput="form.age=this.value;updateBtn()"></div>
     </div>`;
   if (step === 1) return `
@@ -243,7 +240,7 @@ function renderStep() {
       <div>
         <label class="label">Time Horizon</label>
         <div style="display:flex;gap:10px;margin-top:4px">
-          ${[{v:"5",l:"5 Years"},{v:"10",l:"10 Years"},{v:"15",l:"15+ Years"}].map(({v,l}) => `<div class="chip ${form.horizon===v?'active':''}" data-field="horizon" data-value="${v}" onclick="setField('horizon','${v}')">${l}</div>`).join("")}
+          ${[{v:"5",l:"5+ Years"},{v:"10",l:"10+ Years"},{v:"15",l:"15+ Years"}].map(({v,l}) => `<div class="chip ${form.horizon===v?'active':''}" data-field="horizon" data-value="${v}" onclick="setField('horizon','${v}')">${l}</div>`).join("")}
         </div>
       </div>
       <div>
@@ -295,7 +292,7 @@ function renderStep() {
     <div>
       <label class="label">Any specific themes or areas you're interested in? (Optional)</label>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
-        ${["Global Equity","Asian Equity","Technology","Singapore","Bonds","Gold","No preference"].map(p => `<div class="chip ${form.preferences.includes(p)?'active':''}" data-field="preferences" data-value="${p}" onclick="toggleArr('preferences','${p}')">${p}</div>`).join("")}
+        ${["Global Equity","Asian Equity","Technology","Singapore","Emerging Markets","Real Estate","Bonds","Gold","No preference"].map(p => `<div class="chip ${form.preferences.includes(p)?'active':''}" data-field="preferences" data-value="${p}" onclick="toggleArr('preferences','${p}')">${p}</div>`).join("")}
       </div>
     </div>`;
 }
@@ -312,6 +309,7 @@ function renderThankYou() {
         <p style="color:var(--text-light);font-size:16px;max-width:400px;margin:0 auto;line-height:1.6">
           Your investment profile has been submitted. Your adviser will review your information and prepare a personalised proposal for you shortly.
         </p>
+        <p style="color:var(--emerald);font-size:16px;margin-top:28px;font-style:italic">Yours sincerely, Shan</p>
       </div>
     </div>`;
 }
@@ -367,7 +365,7 @@ function renderAdviser() {
           <div style="display:flex;flex-direction:column;gap:12px">
             ${submissions.map((sub, i) => {
               const risk = deriveRisk(sub.riskQ1, sub.riskQ2);
-              const isGen = generated[sub.email];
+              const isGen = generated[sub.phone];
               return `<div onclick="selectClient(${i})" style="background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
                 <div>
                   <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
@@ -401,7 +399,7 @@ function renderClientDetail() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">
           <div>
             <h1 style="font-size:26px;font-weight:700;margin-bottom:6px">${c.name}</h1>
-            <p style="color:var(--text-muted);font-size:14px">${c.email} · ${c.phone}</p>
+            <p style="color:var(--text-muted);font-size:14px">${c.phone}</p>
           </div>
           <span style="padding:6px 14px;border-radius:6px;background:${risk==="High"?"rgba(231,76,60,0.15)":risk==="Medium"?"rgba(230,126,34,0.15)":"rgba(46,204,113,0.15)"};color:${risk==="High"?"var(--danger)":risk==="Medium"?"var(--orange)":"var(--emerald)"};font-size:13px;font-weight:600">${risk} Risk</span>
         </div>
@@ -447,9 +445,9 @@ function renderClientDetail() {
         </div>
         <div style="text-align:center">
           <button class="btn-primary" onclick="copyPrompt()" ${total!==100?"disabled":""} style="padding:16px 48px;font-size:16px;font-weight:700;border-radius:12px;${total!==100?"background:var(--border);color:var(--text-muted);cursor:not-allowed":""}">
-            ${generated[c.email] ? "Copy Prompt Again" : "Copy Prompt for Claude"}
+            ${generated[c.phone] ? "Copy Prompt Again" : "Copy Prompt for Claude"}
           </button>
-          ${generated[c.email] ? `
+          ${generated[c.phone] ? `
             <div style="margin-top:20px" class="fade-up">
               <div style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--emerald-subtle);border-radius:10px;border:1px solid var(--emerald)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -504,7 +502,7 @@ function toggleArr(key, val) {
 }
 function canNext() {
   syncInputs();
-  if (step === 0) return form.name && form.email && form.phone && form.age && parseInt(form.age) > 0;
+  if (step === 0) return form.name && form.phone && form.age && parseInt(form.age) > 0;
   if (step === 1) return form.budget && form.horizon && form.goal.length > 0;
   if (step === 2) return form.riskQ1 && form.riskQ2;
   if (step === 3) return form.hasInvestments && form.hasInsurance;
@@ -513,7 +511,6 @@ function canNext() {
 function syncInputs() {
   var el;
   el = document.getElementById('f-name'); if (el) form.name = el.value;
-  el = document.getElementById('f-email'); if (el) form.email = el.value;
   el = document.getElementById('f-phone'); if (el) form.phone = el.value;
   el = document.getElementById('f-age'); if (el) form.age = el.value;
   el = document.getElementById('f-investmentDetails'); if (el) form.investmentDetails = el.value;
@@ -581,7 +578,7 @@ ${allocation.map(f => `- ${f.name} | ${f.allocation}% | \$${f.dollarAmount}/mo |
 Use the standard charcoal + emerald proposal template.`;
 
   navigator.clipboard.writeText(prompt).then(() => {
-    generated[c.email] = true;
+    generated[c.phone] = true;
     render();
   }).catch(() => {
     // Fallback
@@ -591,7 +588,7 @@ Use the standard charcoal + emerald proposal template.`;
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    generated[c.email] = true;
+    generated[c.phone] = true;
     render();
   });
 }
