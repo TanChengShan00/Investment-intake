@@ -40,7 +40,7 @@
 <!-- CONFIGURATION — UPDATE THIS URL              -->
 <!-- ============================================ -->
 <script>
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw86LsJSCGBMgqJAPzyE6pN81rPxkI3L3tdm-8GffhXyCxbdkb_AjaIQTJeqJDnD-zp2w/exec";
+  const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE";
   const ADVISER_PIN = "8080";
 </script>
 
@@ -236,19 +236,23 @@ function renderStep() {
       <div>
         <label class="label">Monthly Investment Budget (SGD)</label>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
-          ${["100","200","300","500","1000"].map(v => `<div class="chip ${form.budget===v?'active':''}" onclick="setField('budget','${v}')">\$${v}</div>`).join("")}
+          ${["100","200","300","500","1000"].map(v => `<div class="chip ${form.budget===v?'active':''}" data-field="budget" data-value="${v}" onclick="setField('budget','${v}')">\$${v}</div>`).join("")}
         </div>
       </div>
       <div>
         <label class="label">Time Horizon</label>
         <div style="display:flex;gap:10px;margin-top:4px">
-          ${[{v:"5",l:"5 Years"},{v:"10",l:"10 Years"},{v:"15",l:"15+ Years"}].map(({v,l}) => `<div class="chip ${form.horizon===v?'active':''}" onclick="setField('horizon','${v}')">${l}</div>`).join("")}
+          ${[{v:"5",l:"5 Years"},{v:"10",l:"10 Years"},{v:"15",l:"15+ Years"}].map(({v,l}) => `<div class="chip ${form.horizon===v?'active':''}" data-field="horizon" data-value="${v}" onclick="setField('horizon','${v}')">${l}</div>`).join("")}
         </div>
       </div>
       <div>
         <label class="label">Investment Goal (select all that apply)</label>
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
-          ${["Retirement","Property","Children's Education","Wealth Building","Other"].map(g => `<div class="chip ${form.goal.includes(g)?'active':''}" onclick="toggleArr('goal','${g}')">${g}</div>`).join("")}
+          <div class="chip ${form.goal.includes('Retirement')?'active':''}" data-field="goal" data-value="Retirement" onclick="toggleArr('goal','Retirement')">Retirement</div>
+          <div class="chip ${form.goal.includes('Property')?'active':''}" data-field="goal" data-value="Property" onclick="toggleArr('goal','Property')">Property</div>
+          <div class="chip ${form.goal.includes('Childrens Education')?'active':''}" data-field="goal" data-value="Childrens Education" onclick="toggleArr('goal','Childrens Education')">Children's Education</div>
+          <div class="chip ${form.goal.includes('Wealth Building')?'active':''}" data-field="goal" data-value="Wealth Building" onclick="toggleArr('goal','Wealth Building')">Wealth Building</div>
+          <div class="chip ${form.goal.includes('Other')?'active':''}" data-field="goal" data-value="Other" onclick="toggleArr('goal','Other')">Other</div>
         </div>
       </div>
     </div>`;
@@ -257,13 +261,13 @@ function renderStep() {
       <div>
         <p style="font-size:15px;margin-bottom:14px;line-height:1.5">If your portfolio dropped <span style="color:var(--danger);font-weight:700">20%</span> in a single month, you would...</p>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${[{v:"keep",l:"Keep investing as planned — dips are opportunities"},{v:"pause",l:"Pause contributions and wait for recovery"},{v:"sell",l:"Sell to cut my losses"}].map(({v,l}) => `<div class="chip ${form.riskQ1===v?'active':''}" onclick="setField('riskQ1','${v}')" style="padding:14px 20px">${l}</div>`).join("")}
+          ${[{v:"keep",l:"Keep investing as planned — dips are opportunities"},{v:"pause",l:"Pause contributions and wait for recovery"},{v:"sell",l:"Sell to cut my losses"}].map(({v,l}) => `<div class="chip ${form.riskQ1===v?'active':''}" data-field="riskQ1" data-value="${v}" onclick="setField('riskQ1','${v}')" style="padding:14px 20px">${l}</div>`).join("")}
         </div>
       </div>
       <div>
         <p style="font-size:15px;margin-bottom:14px;line-height:1.5">Which statement best describes you?</p>
         <div style="display:flex;flex-direction:column;gap:10px">
-          ${[{v:"max",l:"I want maximum growth — I can handle volatility"},{v:"steady",l:"I want steady growth with some ups and downs"},{v:"protect",l:"I want to protect my capital first"}].map(({v,l}) => `<div class="chip ${form.riskQ2===v?'active':''}" onclick="setField('riskQ2','${v}')" style="padding:14px 20px">${l}</div>`).join("")}
+          ${[{v:"max",l:"I want maximum growth — I can handle volatility"},{v:"steady",l:"I want steady growth with some ups and downs"},{v:"protect",l:"I want to protect my capital first"}].map(({v,l}) => `<div class="chip ${form.riskQ2===v?'active':''}" data-field="riskQ2" data-value="${v}" onclick="setField('riskQ2','${v}')" style="padding:14px 20px">${l}</div>`).join("")}
         </div>
       </div>
     </div>`;
@@ -272,16 +276,16 @@ function renderStep() {
       <div>
         <label class="label">Do you have existing investments?</label>
         <div style="display:flex;gap:10px;margin-top:4px">
-          <div class="chip ${form.hasInvestments==='yes'?'active':''}" onclick="setField('hasInvestments','yes')">Yes</div>
-          <div class="chip ${form.hasInvestments==='no'?'active':''}" onclick="setField('hasInvestments','no')">No</div>
+          <div class="chip ${form.hasInvestments==='yes'?'active':''}" data-field="hasInvestments" data-value="yes" onclick="setField('hasInvestments','yes');render()">Yes</div>
+          <div class="chip ${form.hasInvestments==='no'?'active':''}" data-field="hasInvestments" data-value="no" onclick="setField('hasInvestments','no');render()">No</div>
         </div>
         ${form.hasInvestments==='yes' ? `<textarea class="input" id="f-investmentDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. RSP with POSB, Robo with Syfe...)" oninput="form.investmentDetails=this.value">${form.investmentDetails}</textarea>` : ""}
       </div>
       <div>
         <label class="label">Do you have existing insurance coverage?</label>
         <div style="display:flex;gap:10px;margin-top:4px">
-          <div class="chip ${form.hasInsurance==='yes'?'active':''}" onclick="setField('hasInsurance','yes')">Yes</div>
-          <div class="chip ${form.hasInsurance==='no'?'active':''}" onclick="setField('hasInsurance','no')">No</div>
+          <div class="chip ${form.hasInsurance==='yes'?'active':''}" data-field="hasInsurance" data-value="yes" onclick="setField('hasInsurance','yes');render()">Yes</div>
+          <div class="chip ${form.hasInsurance==='no'?'active':''}" data-field="hasInsurance" data-value="no" onclick="setField('hasInsurance','no');render()">No</div>
         </div>
         ${form.hasInsurance==='yes' ? `<textarea class="input" id="f-insuranceDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. Term life with AIA, IP with Prudential...)" oninput="form.insuranceDetails=this.value">${form.insuranceDetails}</textarea>` : ""}
       </div>
@@ -290,7 +294,7 @@ function renderStep() {
     <div>
       <label class="label">Any specific themes or areas you're interested in? (Optional)</label>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
-        ${["Global Equity","Asian Equity","Technology","Singapore","Bonds","Gold","No preference"].map(p => `<div class="chip ${form.preferences.includes(p)?'active':''}" onclick="toggleArr('preferences','${p}')">${p}</div>`).join("")}
+        ${["Global Equity","Asian Equity","Technology","Singapore","Bonds","Gold","No preference"].map(p => `<div class="chip ${form.preferences.includes(p)?'active':''}" data-field="preferences" data-value="${p}" onclick="toggleArr('preferences','${p}')">${p}</div>`).join("")}
       </div>
     </div>`;
 }
@@ -473,15 +477,29 @@ function attachEvents() {
   if (pinInput) pinInput.addEventListener("keydown", e => { if (e.key === "Enter") checkPin(); });
 }
 
-function setField(key, val) { form[key] = val; render(); }
+function setField(key, val) {
+  form[key] = val;
+  document.querySelectorAll('[data-field="' + key + '"]').forEach(function(el) {
+    if (el.getAttribute('data-value') === val) el.classList.add('active');
+    else el.classList.remove('active');
+  });
+}
 function updateBtn() {
-  const btn = document.querySelector('.btn-primary');
+  var btn = document.querySelector('.btn-primary');
   if (btn) { btn.disabled = !canNext(); btn.style.opacity = canNext() ? 1 : 0.4; }
 }
 function toggleArr(key, val) {
   if (val === "No preference") { form[key] = form[key].includes(val) ? [] : [val]; }
-  else { form[key] = form[key].filter(v => v !== "No preference"); const i = form[key].indexOf(val); i === -1 ? form[key].push(val) : form[key].splice(i, 1); }
-  render();
+  else {
+    form[key] = form[key].filter(function(v) { return v !== "No preference"; });
+    var i = form[key].indexOf(val);
+    if (i === -1) form[key].push(val); else form[key].splice(i, 1);
+  }
+  document.querySelectorAll('[data-field="' + key + '"]').forEach(function(el) {
+    var v = el.getAttribute('data-value');
+    if (form[key].includes(v)) el.classList.add('active');
+    else el.classList.remove('active');
+  });
 }
 function canNext() {
   syncInputs();
