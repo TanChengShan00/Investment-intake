@@ -40,7 +40,7 @@
 <!-- CONFIGURATION — UPDATE THIS URL              -->
 <!-- ============================================ -->
 <script>
-  const GOOGLE_SCRIPT_URL = "investment-intake-40ng48rf2-tanchengshan00s-projects.vercel.app";
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw86LsJSCGBMgqJAPzyE6pN81rPxkI3L3tdm-8GffhXyCxbdkb_AjaIQTJeqJDnD-zp2w/exec";
   const ADVISER_PIN = "8080";
 </script>
 
@@ -146,11 +146,13 @@ async function saveToSheet(data) {
     return;
   }
   try {
+    // Use form POST approach - most reliable with Google Apps Script
+    const formData = new URLSearchParams();
+    formData.append("payload", JSON.stringify(data));
     await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: formData,
     });
   } catch (e) { console.error("Failed to save to sheet:", e); }
 }
