@@ -24,6 +24,9 @@
   .chip { padding: 10px 20px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; color: var(--text-light); cursor: pointer; font-size: 14px; transition: all 0.2s; user-select: none; font-family: 'DM Sans', system-ui, sans-serif; }
   .chip.active { border-color: var(--emerald); background: var(--emerald-subtle); color: var(--emerald); font-weight: 600; }
   .chip:hover { border-color: var(--emerald); }
+  @media (max-width: 480px) {
+    .chip { padding: 8px 14px; font-size: 13px; }
+  }
   .btn-primary { padding: 14px 36px; background: var(--emerald); color: #111; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.2s; }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
   .btn-secondary { padding: 14px 24px; background: transparent; color: var(--text-light); border: 1px solid var(--border); border-radius: 10px; font-size: 15px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; }
@@ -189,13 +192,13 @@ function render() {
 // ============================================
 function renderClient() {
   return `
-    <button onclick="goAdviser()" style="position:fixed;top:16px;right:16px;z-index:100;padding:8px 16px;background:rgba(26,26,26,0.9);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;backdrop-filter:blur(10px)">
+    <button onclick="goAdviser()" style="position:fixed;top:12px;right:12px;z-index:100;padding:6px 12px;background:rgba(26,26,26,0.95);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;backdrop-filter:blur(10px)">
       Adviser View ${submissions.length > 0 ? `<span style="background:var(--emerald);color:#111;border-radius:10px;padding:1px 7px;margin-left:6px;font-size:11px;font-weight:700">${submissions.length}</span>` : ""}
     </button>
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
       <div style="width:100%;max-width:580px" class="fade-up">
         <div style="text-align:center;margin-bottom:36px">
-          <h2 style="font-size:32px;font-weight:800;letter-spacing:0.15em;color:var(--emerald);margin-bottom:24px">INVEST WITH SHAN :)</h2>
+          <h2 style="font-size:clamp(22px,6vw,32px);font-weight:800;letter-spacing:0.15em;color:var(--emerald);margin-bottom:24px">INVEST WITH SHAN :)</h2>
           <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:16px">
             <div style="width:10px;height:10px;background:var(--emerald);border-radius:3px;transform:rotate(45deg)"></div>
             <span style="color:var(--text-light);font-size:18px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600">Investment Profile</span>
@@ -403,7 +406,7 @@ function renderClientDetail() {
           </div>
           <span style="padding:6px 14px;border-radius:6px;background:${risk==="High"?"rgba(231,76,60,0.15)":risk==="Medium"?"rgba(230,126,34,0.15)":"rgba(46,204,113,0.15)"};color:${risk==="High"?"var(--danger)":risk==="Medium"?"var(--orange)":"var(--emerald)"};font-size:13px;font-weight:600">${risk} Risk</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px">
           ${[{l:"AGE",v:c.age},{l:"BUDGET",v:`\$${c.budget}/mo`},{l:"HORIZON",v:`${c.horizon==="15"?"15+":c.horizon} Years`},{l:"GOAL",v:Array.isArray(c.goal)?c.goal[0]:c.goal}].map(({l,v}) => `
             <div style="background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px 18px">
               <div style="color:var(--text-muted);font-size:10px;letter-spacing:0.12em;font-weight:600;margin-bottom:6px">${l}</div>
@@ -427,20 +430,27 @@ function renderClientDetail() {
           <div style="display:flex;border-radius:6px;overflow:hidden;height:12px;margin-bottom:20px">
             ${alloc.map((f,i) => `<div style="width:${f.allocation}%;background:${colors[i]};transition:width 0.3s"></div>`).join("")}
           </div>
-          <div style="display:grid;grid-template-columns:2fr 1fr 70px 70px 80px 80px;gap:8px;padding:0 12px 8px;border-bottom:1px solid var(--border)">
-            ${["Fund","Manager","Alloc %","$/mo","3yr Ann.","Fee"].map(h => `<div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:0.1em">${h}</div>`).join("")}
-          </div>
           ${alloc.map((f,i) => `
-            <div style="display:grid;grid-template-columns:2fr 1fr 70px 70px 80px 80px;gap:8px;padding:10px 12px;border-radius:8px;background:${i%2===0?"rgba(255,255,255,0.02)":"transparent"};align-items:center">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0"></div>
-                <span style="font-size:12.5px;font-weight:500">${f.name.replace("GreatLink ","")}</span>
+            <div style="padding:14px 16px;border-radius:10px;background:${i%2===0?"rgba(255,255,255,0.02)":"transparent"};border:1px solid var(--border);margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0"></div>
+                  <span style="font-size:14px;font-weight:600">${f.name.replace("GreatLink ","")}</span>
+                </div>
               </div>
-              <span style="color:var(--text-muted);font-size:12px">${f.manager}</span>
-              <input type="number" value="${f.allocation}" min="0" max="100" onchange="updateAlloc(${i},this.value)" style="width:54px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--emerald);font-size:13px;font-weight:600;font-family:'DM Sans',system-ui,sans-serif;text-align:center">
-              <span style="color:var(--text-light);font-size:12.5px">\$${f.dollarAmount}</span>
-              <span style="color:${f.yr3&&f.yr3>0?"var(--emerald)":"var(--danger)"};font-size:12.5px;font-weight:600">${f.yr3!==null?f.yr3+"%":"New"}</span>
-              <span style="color:var(--text-muted);font-size:12px">${f.fee?f.fee+"%":"TBC"}</span>
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <span style="color:var(--text-muted);font-size:12px">${f.manager}</span>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span style="color:${f.yr3&&f.yr3>0?"var(--emerald)":"var(--danger)"};font-size:13px;font-weight:600">${f.yr3!==null?f.yr3+"%":"New"}</span>
+                  <span style="color:var(--text-muted);font-size:12px">${f.fee?f.fee+"% fee":"TBC"}</span>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+                <span style="color:var(--text-muted);font-size:12px">Allocation:</span>
+                <input type="number" value="${f.allocation}" min="0" max="100" onchange="updateAlloc(${i},this.value)" style="width:54px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--emerald);font-size:13px;font-weight:600;font-family:'DM Sans',system-ui,sans-serif;text-align:center">
+                <span style="color:var(--text-muted);font-size:12px">%</span>
+                <span style="color:var(--text-light);font-size:13px;margin-left:auto">\$${f.dollarAmount}/mo</span>
+              </div>
             </div>`).join("")}
         </div>
         <div style="text-align:center">
