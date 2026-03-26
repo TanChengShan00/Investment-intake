@@ -40,7 +40,7 @@
 <!-- CONFIGURATION — UPDATE THIS URL              -->
 <!-- ============================================ -->
 <script>
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxX92qjhwCyot8rjlwM5nrDGn-5GeauH3LbqtPuVgm38cCMg41h7Ktry6PpnSfDjayFFA/exec";
+  const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE";
   const ADVISER_PIN = "8080";
 </script>
 
@@ -222,12 +222,12 @@ function renderClient() {
 function renderStep() {
   if (step === 0) return `
     <div style="display:flex;flex-direction:column;gap:20px">
-      <div><label class="label">Full Name</label><input class="input" id="f-name" value="${form.name}" placeholder="e.g. Khong Ching Yi"></div>
+      <div><label class="label">Full Name</label><input class="input" id="f-name" value="${form.name}" placeholder="e.g. Khong Ching Yi" oninput="form.name=this.value;updateBtn()"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div><label class="label">Email</label><input class="input" id="f-email" type="email" value="${form.email}" placeholder="email@example.com"></div>
-        <div><label class="label">Phone</label><input class="input" id="f-phone" value="${form.phone}" placeholder="+65 9XXX XXXX"></div>
+        <div><label class="label">Email</label><input class="input" id="f-email" type="email" value="${form.email}" placeholder="email@example.com" oninput="form.email=this.value;updateBtn()"></div>
+        <div><label class="label">Phone</label><input class="input" id="f-phone" value="${form.phone}" placeholder="+65 9XXX XXXX" oninput="form.phone=this.value;updateBtn()"></div>
       </div>
-      <div><label class="label">Age</label><input class="input" id="f-age" type="number" value="${form.age}" placeholder="26" min="18" max="80"></div>
+      <div><label class="label">Age</label><input class="input" id="f-age" type="number" value="${form.age}" placeholder="26" min="18" max="80" oninput="form.age=this.value;updateBtn()"></div>
     </div>`;
   if (step === 1) return `
     <div style="display:flex;flex-direction:column;gap:24px">
@@ -273,7 +273,7 @@ function renderStep() {
           <div class="chip ${form.hasInvestments==='yes'?'active':''}" onclick="setField('hasInvestments','yes')">Yes</div>
           <div class="chip ${form.hasInvestments==='no'?'active':''}" onclick="setField('hasInvestments','no')">No</div>
         </div>
-        ${form.hasInvestments==='yes' ? `<textarea class="input" id="f-investmentDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. RSP with POSB, Robo with Syfe...)">${form.investmentDetails}</textarea>` : ""}
+        ${form.hasInvestments==='yes' ? `<textarea class="input" id="f-investmentDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. RSP with POSB, Robo with Syfe...)" oninput="form.investmentDetails=this.value">${form.investmentDetails}</textarea>` : ""}
       </div>
       <div>
         <label class="label">Do you have existing insurance coverage?</label>
@@ -281,7 +281,7 @@ function renderStep() {
           <div class="chip ${form.hasInsurance==='yes'?'active':''}" onclick="setField('hasInsurance','yes')">Yes</div>
           <div class="chip ${form.hasInsurance==='no'?'active':''}" onclick="setField('hasInsurance','no')">No</div>
         </div>
-        ${form.hasInsurance==='yes' ? `<textarea class="input" id="f-insuranceDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. Term life with AIA, IP with Prudential...)">${form.insuranceDetails}</textarea>` : ""}
+        ${form.hasInsurance==='yes' ? `<textarea class="input" id="f-insuranceDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. Term life with AIA, IP with Prudential...)" oninput="form.insuranceDetails=this.value">${form.insuranceDetails}</textarea>` : ""}
       </div>
     </div>`;
   if (step === 4) return `
@@ -472,6 +472,10 @@ function attachEvents() {
 }
 
 function setField(key, val) { form[key] = val; render(); }
+function updateBtn() {
+  const btn = document.querySelector('.btn-primary');
+  if (btn) { btn.disabled = !canNext(); btn.style.opacity = canNext() ? 1 : 0.4; }
+}
 function toggleArr(key, val) {
   if (val === "No preference") { form[key] = form[key].includes(val) ? [] : [val]; }
   else { form[key] = form[key].filter(v => v !== "No preference"); const i = form[key].indexOf(val); i === -1 ? form[key].push(val) : form[key].splice(i, 1); }
