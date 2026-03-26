@@ -211,8 +211,8 @@ function renderClient() {
         <div style="display:flex;justify-content:space-between">
           ${step > 0 ? `<button class="btn-secondary" onclick="prevStep()">Back</button>` : `<div></div>`}
           ${step < STEPS.length - 1 
-            ? `<button class="btn-primary" onclick="nextStep()" ${canNext() ? "" : "disabled"}>Continue</button>`
-            : `<button class="btn-primary" onclick="submitForm()" ${canNext() ? "" : "disabled"} style="min-width:160px">Submit Profile</button>`
+            ? `<button class="btn-primary" onclick="nextStep()">Continue</button>`
+            : `<button class="btn-primary" onclick="syncInputs();submitForm()" style="min-width:160px">Submit Profile</button>`
           }
         </div>
       </div>
@@ -482,14 +482,24 @@ function toggleArr(key, val) {
   render();
 }
 function canNext() {
+  syncInputs();
   if (step === 0) return form.name && form.email && form.phone && form.age && parseInt(form.age) > 0;
   if (step === 1) return form.budget && form.horizon && form.goal.length > 0;
   if (step === 2) return form.riskQ1 && form.riskQ2;
   if (step === 3) return form.hasInvestments && form.hasInsurance;
   return true;
 }
-function nextStep() { if (canNext()) { step++; render(); } }
-function prevStep() { step--; render(); }
+function syncInputs() {
+  var el;
+  el = document.getElementById('f-name'); if (el) form.name = el.value;
+  el = document.getElementById('f-email'); if (el) form.email = el.value;
+  el = document.getElementById('f-phone'); if (el) form.phone = el.value;
+  el = document.getElementById('f-age'); if (el) form.age = el.value;
+  el = document.getElementById('f-investmentDetails'); if (el) form.investmentDetails = el.value;
+  el = document.getElementById('f-insuranceDetails'); if (el) form.insuranceDetails = el.value;
+}
+function nextStep() { syncInputs(); if (canNext()) { step++; render(); } else { alert("Please fill in all fields before continuing."); } }
+function prevStep() { syncInputs(); step--; render(); }
 
 async function submitForm() {
   const data = { ...form, submittedAt: new Date().toISOString() };
