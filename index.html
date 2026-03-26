@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investment Profile</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #111111; --card: #1A1A1A; --border: #2A2A2A;
+    --emerald: #2ECC71; --emerald-dark: #27AE60; --emerald-subtle: rgba(46,204,113,0.1);
+    --white: #FAFAFA; --text-light: #BFBFBF; --text-muted: #888888;
+    --danger: #E74C3C; --teal: #1ABC9C; --blue: #3498DB; --purple: #9B59B6; --orange: #E67E22;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--white); min-height: 100vh; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
+  .fade-up { animation: fadeUp 0.5s ease; }
+  input, textarea { font-family: 'DM Sans', system-ui, sans-serif; }
+  input:focus, textarea:focus { border-color: var(--emerald) !important; outline: none; }
+  .input { width: 100%; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--white); font-size: 15px; }
+  .label { color: var(--text-light); font-size: 13px; margin-bottom: 6px; display: block; font-weight: 500; letter-spacing: 0.02em; }
+  .chip { padding: 10px 20px; border-radius: 8px; border: 1.5px solid var(--border); background: transparent; color: var(--text-light); cursor: pointer; font-size: 14px; transition: all 0.2s; user-select: none; font-family: 'DM Sans', system-ui, sans-serif; }
+  .chip.active { border-color: var(--emerald); background: var(--emerald-subtle); color: var(--emerald); font-weight: 600; }
+  .chip:hover { border-color: var(--emerald); }
+  .btn-primary { padding: 14px 36px; background: var(--emerald); color: #111; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; transition: all 0.2s; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary { padding: 14px 24px; background: transparent; color: var(--text-light); border: 1px solid var(--border); border-radius: 10px; font-size: 15px; cursor: pointer; font-family: 'DM Sans', system-ui, sans-serif; }
+  .btn-secondary:hover { border-color: var(--text-light); }
+  .progress-bar { flex: 1; height: 3px; border-radius: 2px; background: var(--border); transition: background 0.3s; }
+  .progress-bar.active { background: var(--emerald); }
+  .card { background: var(--card); border-radius: 14px; padding: 28px 24px; border: 1px solid var(--border); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- CONFIGURATION — UPDATE THIS URL              -->
+<!-- ============================================ -->
+<script>
+  const GOOGLE_SCRIPT_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE";
+  const ADVISER_PIN = "8080";
+</script>
+
+<div id="app"></div>
+
+<script>
+// ============================================
+// STATE
+// ============================================
+let currentView = "client"; // client | password | adviser
+let authenticated = false;
+let step = 0;
+let submissions = [];
+let selectedClient = null;
+let allocation = null;
+let generated = {};
+
+const form = {
+  name: "", email: "", phone: "", age: "",
+  budget: "", horizon: "", goal: [],
+  riskQ1: "", riskQ2: "",
+  hasInvestments: "", investmentDetails: "",
+  hasInsurance: "", insuranceDetails: "",
+  preferences: [],
+};
+
+const STEPS = ["About You", "Investment Plan", "Risk Style", "Current Situation", "Preferences"];
+
+// ============================================
+// FUNDS DATABASE
+// ============================================
+const FUNDS = [
+  { name: "GreatLink Global Equity Alpha Fund", manager: "Schroders", category: "Global Equity", fee: 1.60, yr3: 14.78, yr10: 9.60 },
+  { name: "GreatLink Global Perspective Fund", manager: "Capital Group", category: "Global Equity", fee: 1.60, yr3: 13.56, yr10: 7.99 },
+  { name: "GreatLink Global Technology Fund", manager: "Wellington", category: "Technology", fee: 1.60, yr3: 17.35, yr10: 13.80 },
+  { name: "GreatLink Global Equity Fund", manager: "Goldman Sachs", category: "Global Equity", fee: 1.60, yr3: 14.79, yr10: 8.91 },
+  { name: "GreatLink Singapore Equities Fund", manager: "abrdn Asia", category: "Singapore", fee: 1.50, yr3: 11.62, yr10: 5.32 },
+  { name: "GreatLink Asia Pacific Equity Fund", manager: "Lion Global", category: "Asian Equity", fee: 1.50, yr3: 5.83, yr10: 4.23 },
+  { name: "GreatLink Lion India Fund", manager: "Lion Global", category: "Asian Equity", fee: 1.50, yr3: 13.12, yr10: 6.88 },
+  { name: "GreatLink Lion Japan Growth Fund", manager: "Lion Global", category: "Asian Equity", fee: 1.50, yr3: 19.71, yr10: 9.57 },
+  { name: "GreatLink China Growth Fund", manager: "Schroders", category: "Asian Equity", fee: 1.50, yr3: -4.22, yr10: 3.35 },
+  { name: "GreatLink Global Emerging Markets Equity Fund", manager: "Fidelity", category: "Asian Equity", fee: 1.60, yr3: 3.61, yr10: 2.80 },
+  { name: "GreatLink Singapore Physical Gold Fund", manager: "Great Eastern", category: "Gold", fee: null, yr3: null, yr10: null },
+  { name: "GreatLink Short Duration Bond Fund", manager: "Lion Global", category: "Bonds", fee: 0.50, yr3: 3.61, yr10: 2.38 },
+  { name: "GreatLink Global Bond Fund", manager: "PIMCO", category: "Bonds", fee: 0.85, yr3: 0.46, yr10: 0.90 },
+  { name: "GreatLink Income Bond Fund", manager: "JPMorgan", category: "Bonds", fee: 1.00, yr3: 3.15, yr10: null },
+  { name: "GreatLink Cash Fund", manager: "Lion Global", category: "Bonds", fee: 0.30, yr3: 3.27, yr10: 1.69 },
+];
+
+// ============================================
+// RISK & ALLOCATION LOGIC
+// ============================================
+function deriveRisk(q1, q2) {
+  let agg = 0;
+  if (q1 === "keep") agg++; if (q2 === "max") agg++;
+  if (q1 === "sell") agg--; if (q2 === "protect") agg--;
+  return agg >= 1 ? "High" : agg <= -1 ? "Low" : "Medium";
+}
+
+function generateAllocation(client) {
+  const risk = deriveRisk(client.riskQ1, client.riskQ2);
+  const age = parseInt(client.age);
+  const horizon = client.horizon === "15" ? 20 : parseInt(client.horizon);
+  const budget = parseInt(client.budget);
+  const prefs = client.preferences && client.preferences.length > 0 && !client.preferences.includes("No preference") ? client.preferences : null;
+
+  const equityFunds = FUNDS.filter(f => ["Global Equity","Asian Equity","Technology","Singapore"].includes(f.category) && f.yr3 > 0).sort((a,b) => b.yr3 - a.yr3);
+  const bondFunds = FUNDS.filter(f => f.category === "Bonds" && f.yr3 > 0).sort((a,b) => b.yr3 - a.yr3);
+  const goldFund = FUNDS.find(f => f.category === "Gold");
+
+  let selected = [];
+  if (prefs) {
+    const prefFunds = equityFunds.filter(f => prefs.includes(f.category));
+    const others = equityFunds.filter(f => !prefs.includes(f.category));
+    selected = [...prefFunds.slice(0, 3), ...others.slice(0, 2)];
+  } else {
+    const g = equityFunds.filter(f => f.category === "Global Equity").slice(0, 2);
+    const t = equityFunds.filter(f => f.category === "Technology").slice(0, 1);
+    const s = equityFunds.filter(f => f.category === "Singapore").slice(0, 1);
+    const a = equityFunds.filter(f => f.category === "Asian Equity").slice(0, 1);
+    selected = [...g, ...t, ...s, ...a];
+  }
+
+  if (risk !== "High" && selected.length < 5) selected.push(bondFunds[0]);
+  if (risk === "Low" && goldFund && selected.length < 5) selected.push(goldFund);
+  selected = selected.slice(0, 5);
+
+  const base = Math.floor(100 / selected.length);
+  const rem = 100 - base * selected.length;
+  return selected.map((f, i) => ({
+    ...f,
+    allocation: base + (i < rem ? 1 : 0),
+    dollarAmount: Math.round((base + (i < rem ? 1 : 0)) / 100 * budget),
+  }));
+}
+
+// ============================================
+// GOOGLE SHEETS API
+// ============================================
+async function saveToSheet(data) {
+  if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") {
+    console.warn("Google Script URL not configured. Saving locally only.");
+    return;
+  }
+  try {
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch (e) { console.error("Failed to save to sheet:", e); }
+}
+
+async function loadFromSheet() {
+  if (GOOGLE_SCRIPT_URL === "YOUR_GOOGLE_SCRIPT_URL_HERE") return [];
+  try {
+    const res = await fetch(GOOGLE_SCRIPT_URL);
+    const data = await res.json();
+    return data.map(row => ({
+      ...row,
+      goal: typeof row.goal === "string" ? row.goal.split(", ") : row.goal || [],
+      preferences: typeof row.preferences === "string" ? row.preferences.split(", ").filter(Boolean) : row.preferences || [],
+      age: String(row.age),
+      budget: String(row.budget),
+      horizon: String(row.horizon),
+    }));
+  } catch (e) { console.error("Failed to load from sheet:", e); return []; }
+}
+
+// ============================================
+// RENDER ENGINE
+// ============================================
+function render() {
+  const app = document.getElementById("app");
+  if (currentView === "client") app.innerHTML = renderClient();
+  else if (currentView === "password") app.innerHTML = renderPassword();
+  else if (currentView === "adviser") app.innerHTML = renderAdviser();
+  attachEvents();
+}
+
+// ============================================
+// CLIENT FORM
+// ============================================
+function renderClient() {
+  return `
+    <button onclick="goAdviser()" style="position:fixed;top:16px;right:16px;z-index:100;padding:8px 16px;background:rgba(26,26,26,0.9);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;backdrop-filter:blur(10px)">
+      Adviser View ${submissions.length > 0 ? `<span style="background:var(--emerald);color:#111;border-radius:10px;padding:1px 7px;margin-left:6px;font-size:11px;font-weight:700">${submissions.length}</span>` : ""}
+    </button>
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="width:100%;max-width:580px" class="fade-up">
+        <div style="text-align:center;margin-bottom:36px">
+          <div style="display:inline-flex;align-items:center;gap:8px;margin-bottom:16px">
+            <div style="width:10px;height:10px;background:var(--emerald);border-radius:3px;transform:rotate(45deg)"></div>
+            <span style="color:var(--text-muted);font-size:12px;letter-spacing:0.15em;text-transform:uppercase;font-weight:600">Investment Profile</span>
+          </div>
+          <h1 style="font-size:26px;font-weight:700;margin-bottom:6px">Let's Get Started</h1>
+          <p style="color:var(--text-muted);font-size:14px">Takes about 90 seconds</p>
+        </div>
+        <div style="display:flex;gap:4px;margin-bottom:32px">
+          ${STEPS.map((_, i) => `<div class="progress-bar ${i <= step ? 'active' : ''}"></div>`).join("")}
+        </div>
+        <div style="margin-bottom:24px">
+          <span style="color:var(--emerald);font-size:12px;font-weight:600;letter-spacing:0.08em">STEP ${step + 1} OF ${STEPS.length}</span>
+          <h2 style="font-size:20px;font-weight:600;margin-top:6px">${STEPS[step]}</h2>
+        </div>
+        <div class="card" style="margin-bottom:24px">${renderStep()}</div>
+        <div style="display:flex;justify-content:space-between">
+          ${step > 0 ? `<button class="btn-secondary" onclick="prevStep()">Back</button>` : `<div></div>`}
+          ${step < STEPS.length - 1 
+            ? `<button class="btn-primary" onclick="nextStep()" ${canNext() ? "" : "disabled"}>Continue</button>`
+            : `<button class="btn-primary" onclick="submitForm()" ${canNext() ? "" : "disabled"} style="min-width:160px">Submit Profile</button>`
+          }
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderStep() {
+  if (step === 0) return `
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div><label class="label">Full Name</label><input class="input" id="f-name" value="${form.name}" placeholder="e.g. Khong Ching Yi"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div><label class="label">Email</label><input class="input" id="f-email" type="email" value="${form.email}" placeholder="email@example.com"></div>
+        <div><label class="label">Phone</label><input class="input" id="f-phone" value="${form.phone}" placeholder="+65 9XXX XXXX"></div>
+      </div>
+      <div><label class="label">Age</label><input class="input" id="f-age" type="number" value="${form.age}" placeholder="26" min="18" max="80"></div>
+    </div>`;
+  if (step === 1) return `
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div>
+        <label class="label">Monthly Investment Budget (SGD)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
+          ${["100","200","300","500","1000"].map(v => `<div class="chip ${form.budget===v?'active':''}" onclick="setField('budget','${v}')">\$${v}</div>`).join("")}
+        </div>
+      </div>
+      <div>
+        <label class="label">Time Horizon</label>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          ${[{v:"5",l:"5 Years"},{v:"10",l:"10 Years"},{v:"15",l:"15+ Years"}].map(({v,l}) => `<div class="chip ${form.horizon===v?'active':''}" onclick="setField('horizon','${v}')">${l}</div>`).join("")}
+        </div>
+      </div>
+      <div>
+        <label class="label">Investment Goal (select all that apply)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px">
+          ${["Retirement","Property","Children's Education","Wealth Building","Other"].map(g => `<div class="chip ${form.goal.includes(g)?'active':''}" onclick="toggleArr('goal','${g}')">${g}</div>`).join("")}
+        </div>
+      </div>
+    </div>`;
+  if (step === 2) return `
+    <div style="display:flex;flex-direction:column;gap:28px">
+      <div>
+        <p style="font-size:15px;margin-bottom:14px;line-height:1.5">If your portfolio dropped <span style="color:var(--danger);font-weight:700">20%</span> in a single month, you would...</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${[{v:"keep",l:"Keep investing as planned — dips are opportunities"},{v:"pause",l:"Pause contributions and wait for recovery"},{v:"sell",l:"Sell to cut my losses"}].map(({v,l}) => `<div class="chip ${form.riskQ1===v?'active':''}" onclick="setField('riskQ1','${v}')" style="padding:14px 20px">${l}</div>`).join("")}
+        </div>
+      </div>
+      <div>
+        <p style="font-size:15px;margin-bottom:14px;line-height:1.5">Which statement best describes you?</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${[{v:"max",l:"I want maximum growth — I can handle volatility"},{v:"steady",l:"I want steady growth with some ups and downs"},{v:"protect",l:"I want to protect my capital first"}].map(({v,l}) => `<div class="chip ${form.riskQ2===v?'active':''}" onclick="setField('riskQ2','${v}')" style="padding:14px 20px">${l}</div>`).join("")}
+        </div>
+      </div>
+    </div>`;
+  if (step === 3) return `
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div>
+        <label class="label">Do you have existing investments?</label>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <div class="chip ${form.hasInvestments==='yes'?'active':''}" onclick="setField('hasInvestments','yes')">Yes</div>
+          <div class="chip ${form.hasInvestments==='no'?'active':''}" onclick="setField('hasInvestments','no')">No</div>
+        </div>
+        ${form.hasInvestments==='yes' ? `<textarea class="input" id="f-investmentDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. RSP with POSB, Robo with Syfe...)">${form.investmentDetails}</textarea>` : ""}
+      </div>
+      <div>
+        <label class="label">Do you have existing insurance coverage?</label>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <div class="chip ${form.hasInsurance==='yes'?'active':''}" onclick="setField('hasInsurance','yes')">Yes</div>
+          <div class="chip ${form.hasInsurance==='no'?'active':''}" onclick="setField('hasInsurance','no')">No</div>
+        </div>
+        ${form.hasInsurance==='yes' ? `<textarea class="input" id="f-insuranceDetails" style="margin-top:12px;min-height:70px;resize:vertical" placeholder="Briefly describe (e.g. Term life with AIA, IP with Prudential...)">${form.insuranceDetails}</textarea>` : ""}
+      </div>
+    </div>`;
+  if (step === 4) return `
+    <div>
+      <label class="label">Any specific themes or areas you're interested in? (Optional)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
+        ${["Global Equity","Asian Equity","Technology","Singapore","Bonds","Gold","No preference"].map(p => `<div class="chip ${form.preferences.includes(p)?'active':''}" onclick="toggleArr('preferences','${p}')">${p}</div>`).join("")}
+      </div>
+    </div>`;
+}
+
+function renderThankYou() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+      <div style="text-align:center" class="fade-up">
+        <div style="width:80px;height:80px;border-radius:50%;background:var(--emerald-subtle);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;border:2px solid var(--emerald)">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h2 style="font-size:28px;margin-bottom:12px;font-weight:600">Thank You, ${form.name.split(" ")[0]}!</h2>
+        <p style="color:var(--text-light);font-size:16px;max-width:400px;margin:0 auto;line-height:1.6">
+          Your investment profile has been submitted. Your adviser will review your information and prepare a personalised proposal for you shortly.
+        </p>
+      </div>
+    </div>`;
+}
+
+// ============================================
+// PASSWORD GATE
+// ============================================
+function renderPassword() {
+  return `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+      <div style="width:100%;max-width:380px;text-align:center" class="fade-up">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--emerald-subtle);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;border:2px solid var(--border)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h2 style="font-size:22px;font-weight:700;margin-bottom:6px">Adviser Access</h2>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:28px">Enter your PIN to continue</p>
+        <div id="pin-wrapper">
+          <input type="password" id="pin-input" class="input" placeholder="Enter PIN" style="text-align:center;font-size:18px;letter-spacing:0.3em" autofocus>
+        </div>
+        <div id="pin-error" style="color:var(--danger);font-size:13px;margin-top:12px;font-weight:500;display:none">Incorrect PIN. Try again.</div>
+        <button class="btn-primary" onclick="checkPin()" style="width:100%;margin-top:20px">Unlock</button>
+        <button onclick="currentView='client';render()" style="background:none;border:none;color:var(--text-muted);font-size:13px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;margin-top:16px">Back to Client View</button>
+      </div>
+    </div>`;
+}
+
+// ============================================
+// ADVISER DASHBOARD
+// ============================================
+function renderAdviser() {
+  if (selectedClient) return renderClientDetail();
+  return `
+    <div style="padding:32px 24px">
+      <div style="max-width:800px;margin:0 auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">
+          <div>
+            <h1 style="font-size:26px;font-weight:700;margin-bottom:4px">Adviser Dashboard</h1>
+            <p style="color:var(--text-muted);font-size:14px">${submissions.length} prospect${submissions.length!==1?"s":""} submitted</p>
+          </div>
+          <button class="btn-secondary" onclick="currentView='client';render()" style="font-size:13px;padding:10px 20px">Switch to Client View</button>
+        </div>
+        ${submissions.length === 0 ? `
+          <div class="card" style="padding:60px 32px;text-align:center">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--emerald-subtle);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <h3 style="font-size:18px;margin-bottom:8px">No submissions yet</h3>
+            <p style="color:var(--text-muted);font-size:14px">Share your URL with clients to start receiving profiles.</p>
+          </div>
+        ` : `
+          <div style="display:flex;flex-direction:column;gap:12px">
+            ${submissions.map((sub, i) => {
+              const risk = deriveRisk(sub.riskQ1, sub.riskQ2);
+              const isGen = generated[sub.email];
+              return `<div onclick="selectClient(${i})" style="background:var(--card);border-radius:12px;border:1px solid var(--border);padding:20px 24px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+                    <h3 style="font-size:16px;font-weight:600">${sub.name}</h3>
+                    ${isGen ? `<span style="padding:2px 10px;border-radius:4px;background:var(--emerald-subtle);color:var(--emerald);font-size:11px;font-weight:600">COPIED</span>` : ""}
+                  </div>
+                  <p style="color:var(--text-muted);font-size:13px">Age ${sub.age} · \$${sub.budget}/mo · ${sub.horizon==="15"?"15+":sub.horizon} years · ${risk} risk · ${Array.isArray(sub.goal)?sub.goal.join(", "):sub.goal}</p>
+                </div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>`;
+            }).join("")}
+          </div>
+        `}
+      </div>
+    </div>`;
+}
+
+function renderClientDetail() {
+  const c = selectedClient;
+  const risk = deriveRisk(c.riskQ1, c.riskQ2);
+  const alloc = allocation || [];
+  const total = alloc.reduce((s, f) => s + f.allocation, 0);
+  const colors = ["var(--emerald)","var(--emerald-dark)","var(--teal)","var(--blue)","var(--purple)"];
+
+  return `
+    <div style="padding:32px 24px">
+      <div style="max-width:900px;margin:0 auto" class="fade-up">
+        <button onclick="selectedClient=null;allocation=null;render()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;margin-bottom:24px;padding:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg> All Prospects
+        </button>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px">
+          <div>
+            <h1 style="font-size:26px;font-weight:700;margin-bottom:6px">${c.name}</h1>
+            <p style="color:var(--text-muted);font-size:14px">${c.email} · ${c.phone}</p>
+          </div>
+          <span style="padding:6px 14px;border-radius:6px;background:${risk==="High"?"rgba(231,76,60,0.15)":risk==="Medium"?"rgba(230,126,34,0.15)":"rgba(46,204,113,0.15)"};color:${risk==="High"?"var(--danger)":risk==="Medium"?"var(--orange)":"var(--emerald)"};font-size:13px;font-weight:600">${risk} Risk</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px">
+          ${[{l:"AGE",v:c.age},{l:"BUDGET",v:`\$${c.budget}/mo`},{l:"HORIZON",v:`${c.horizon==="15"?"15+":c.horizon} Years`},{l:"GOAL",v:Array.isArray(c.goal)?c.goal[0]:c.goal}].map(({l,v}) => `
+            <div style="background:var(--card);border-radius:10px;border:1px solid var(--border);padding:16px 18px">
+              <div style="color:var(--text-muted);font-size:10px;letter-spacing:0.12em;font-weight:600;margin-bottom:6px">${l}</div>
+              <div style="color:var(--emerald);font-size:18px;font-weight:700">${v}</div>
+            </div>`).join("")}
+        </div>
+        ${c.hasInvestments==="yes"||c.hasInsurance==="yes" ? `
+          <div class="card" style="padding:18px 22px;margin-bottom:28px">
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Existing Coverage</h3>
+            ${c.hasInvestments==="yes" ? `<p style="color:var(--text-light);font-size:13px;margin-bottom:6px"><strong>Investments:</strong> ${c.investmentDetails||"Yes (no details)"}</p>` : ""}
+            ${c.hasInsurance==="yes" ? `<p style="color:var(--text-light);font-size:13px"><strong>Insurance:</strong> ${c.insuranceDetails||"Yes (no details)"}</p>` : ""}
+          </div>` : ""}
+        <div class="card" style="padding:24px;margin-bottom:28px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div>
+              <h3 style="font-size:17px;font-weight:600;margin-bottom:4px">Recommended Allocation</h3>
+              <p style="color:var(--text-muted);font-size:12px">AI-generated · Adjust allocations below</p>
+            </div>
+            ${total!==100 ? `<span style="color:var(--danger);font-size:13px;font-weight:600">Total: ${total}% (must be 100%)</span>` : ""}
+          </div>
+          <div style="display:flex;border-radius:6px;overflow:hidden;height:12px;margin-bottom:20px">
+            ${alloc.map((f,i) => `<div style="width:${f.allocation}%;background:${colors[i]};transition:width 0.3s"></div>`).join("")}
+          </div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 70px 70px 80px 80px;gap:8px;padding:0 12px 8px;border-bottom:1px solid var(--border)">
+            ${["Fund","Manager","Alloc %","$/mo","3yr Ann.","Fee"].map(h => `<div style="color:var(--text-muted);font-size:10px;font-weight:600;letter-spacing:0.1em">${h}</div>`).join("")}
+          </div>
+          ${alloc.map((f,i) => `
+            <div style="display:grid;grid-template-columns:2fr 1fr 70px 70px 80px 80px;gap:8px;padding:10px 12px;border-radius:8px;background:${i%2===0?"rgba(255,255,255,0.02)":"transparent"};align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:8px;height:8px;border-radius:2px;background:${colors[i]};flex-shrink:0"></div>
+                <span style="font-size:12.5px;font-weight:500">${f.name.replace("GreatLink ","")}</span>
+              </div>
+              <span style="color:var(--text-muted);font-size:12px">${f.manager}</span>
+              <input type="number" value="${f.allocation}" min="0" max="100" onchange="updateAlloc(${i},this.value)" style="width:54px;padding:6px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--emerald);font-size:13px;font-weight:600;font-family:'DM Sans',system-ui,sans-serif;text-align:center">
+              <span style="color:var(--text-light);font-size:12.5px">\$${f.dollarAmount}</span>
+              <span style="color:${f.yr3&&f.yr3>0?"var(--emerald)":"var(--danger)"};font-size:12.5px;font-weight:600">${f.yr3!==null?f.yr3+"%":"New"}</span>
+              <span style="color:var(--text-muted);font-size:12px">${f.fee?f.fee+"%":"TBC"}</span>
+            </div>`).join("")}
+        </div>
+        <div style="text-align:center">
+          <button class="btn-primary" onclick="copyPrompt()" ${total!==100?"disabled":""} style="padding:16px 48px;font-size:16px;font-weight:700;border-radius:12px;${total!==100?"background:var(--border);color:var(--text-muted);cursor:not-allowed":""}">
+            ${generated[c.email] ? "Copy Prompt Again" : "Copy Prompt for Claude"}
+          </button>
+          ${generated[c.email] ? `
+            <div style="margin-top:20px" class="fade-up">
+              <div style="display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--emerald-subtle);border-radius:10px;border:1px solid var(--emerald)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span style="color:var(--emerald);font-weight:600;font-size:14px">Copied to clipboard!</span>
+              </div>
+              <p style="color:var(--text-muted);font-size:13px;margin-top:10px">Paste into a new Claude chat to generate the PDF proposal.</p>
+            </div>` : ""}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ============================================
+// EVENT HANDLERS
+// ============================================
+function attachEvents() {
+  ["name","email","phone","age"].forEach(f => {
+    const el = document.getElementById(`f-${f}`);
+    if (el) el.addEventListener("input", e => { form[f] = e.target.value; });
+  });
+  ["investmentDetails","insuranceDetails"].forEach(f => {
+    const el = document.getElementById(`f-${f}`);
+    if (el) el.addEventListener("input", e => { form[f] = e.target.value; });
+  });
+  const pinInput = document.getElementById("pin-input");
+  if (pinInput) pinInput.addEventListener("keydown", e => { if (e.key === "Enter") checkPin(); });
+}
+
+function setField(key, val) { form[key] = val; render(); }
+function toggleArr(key, val) {
+  if (val === "No preference") { form[key] = form[key].includes(val) ? [] : [val]; }
+  else { form[key] = form[key].filter(v => v !== "No preference"); const i = form[key].indexOf(val); i === -1 ? form[key].push(val) : form[key].splice(i, 1); }
+  render();
+}
+function canNext() {
+  if (step === 0) return form.name && form.email && form.phone && form.age && parseInt(form.age) > 0;
+  if (step === 1) return form.budget && form.horizon && form.goal.length > 0;
+  if (step === 2) return form.riskQ1 && form.riskQ2;
+  if (step === 3) return form.hasInvestments && form.hasInsurance;
+  return true;
+}
+function nextStep() { if (canNext()) { step++; render(); } }
+function prevStep() { step--; render(); }
+
+async function submitForm() {
+  const data = { ...form, submittedAt: new Date().toISOString() };
+  submissions.push(data);
+  await saveToSheet(data);
+  renderThankYou();
+}
+
+function goAdviser() { currentView = authenticated ? "adviser" : "password"; render(); }
+
+function checkPin() {
+  const val = document.getElementById("pin-input").value;
+  if (val === ADVISER_PIN) {
+    authenticated = true;
+    currentView = "adviser";
+    loadFromSheet().then(data => { if (data.length) submissions = data; render(); });
+    render();
+  } else {
+    const wrapper = document.getElementById("pin-wrapper");
+    const err = document.getElementById("pin-error");
+    wrapper.style.animation = "shake 0.4s ease";
+    err.style.display = "block";
+    setTimeout(() => { wrapper.style.animation = ""; }, 500);
+    setTimeout(() => { err.style.display = "none"; }, 2000);
+  }
+}
+
+function selectClient(i) {
+  selectedClient = submissions[i];
+  allocation = generateAllocation(selectedClient);
+  render();
+}
+
+function updateAlloc(idx, val) {
+  allocation[idx].allocation = parseInt(val) || 0;
+  allocation[idx].dollarAmount = Math.round(allocation[idx].allocation / 100 * parseInt(selectedClient.budget));
+  render();
+}
+
+function copyPrompt() {
+  const c = selectedClient;
+  const risk = deriveRisk(c.riskQ1, c.riskQ2);
+  const prompt = `Please generate an investment proposal PDF for my client with the following details:
+
+CLIENT PROFILE
+- Name: ${c.name}
+- Age: ${c.age}
+- Monthly Budget: \$${c.budget}
+- Time Horizon: ${c.horizon==="15"?"15+":c.horizon} years
+- Risk Profile: ${risk}
+- Goal: ${Array.isArray(c.goal)?c.goal.join(", "):c.goal}
+- Existing Investments: ${c.hasInvestments==="yes"?c.investmentDetails||"Yes":"No"}
+- Existing Insurance: ${c.hasInsurance==="yes"?c.insuranceDetails||"Yes":"No"}
+
+FUND ALLOCATION
+${allocation.map(f => `- ${f.name} | ${f.allocation}% | \$${f.dollarAmount}/mo | Manager: ${f.manager} | Fee: ${f.fee||"TBC"}% | 3yr: ${f.yr3!==null?f.yr3+"%":"New"} | 10yr: ${f.yr10!==null?f.yr10+"%":"N/A"}`).join("\n")}
+
+Use the standard charcoal + emerald proposal template.`;
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    generated[c.email] = true;
+    render();
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement("textarea");
+    ta.value = prompt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    generated[c.email] = true;
+    render();
+  });
+}
+
+// ============================================
+// INIT
+// ============================================
+render();
+</script>
+</body>
+</html>
